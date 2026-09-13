@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1
+
+- Fixed CI test dependency installation by explicitly installing `pytest`.
+- Updated Python package metadata to version `2.0.1`.
+
 ## 2.0.0 - Final
 
 - Consolidated production runtime release.
