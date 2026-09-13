@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.pytest_cache
+__pycache__
+*.pyc
+.universal-coder
+dist
+dist2
+android/.gradle
+android/build
+android/app/build
+deploy/server.key
+deploy/server.crt

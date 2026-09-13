@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "universal-coder"
+version = "2.0.0"
+description = "Model-agnostic autonomous coding agent runtime"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+coder = "universal_coder.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

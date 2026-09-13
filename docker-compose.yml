@@ -1,0 +1,25 @@
+services:
+  universal-coder:
+    build: .
+    ports:
+      - "8765:8765"
+    environment:
+      CODER_AUTH_TOKEN: ${CODER_AUTH_TOKEN:?set CODER_AUTH_TOKEN}
+      CODER_TLS_CERT: /run/secrets/server.crt
+      CODER_TLS_KEY: /run/secrets/server.key
+      # The container is itself the deployment boundary. For per-run Docker isolation,
+      # run the Python service on the host/VM with Docker or Podman available.
+      CODER_SANDBOX_MODE: trusted
+      CODER_WORKSPACE_ROOTS: /workspace
+    volumes:
+      - ./workspace:/workspace
+    secrets:
+      - server.crt
+      - server.key
+    restart: unless-stopped
+
+secrets:
+  server.crt:
+    file: ./deploy/server.crt
+  server.key:
+    file: ./deploy/server.key
