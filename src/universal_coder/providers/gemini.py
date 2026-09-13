@@ -1,4 +1,5 @@
 from __future__ import annotations
+import time
 import json, urllib.request, urllib.error
 from typing import Iterator
 from universal_coder.models import Message, ModelResponse, ModelCapabilities, StreamChunk
