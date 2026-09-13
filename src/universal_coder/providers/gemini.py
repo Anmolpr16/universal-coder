@@ -42,7 +42,19 @@ class GeminiProvider:
                     if isinstance(args,str):
                         try: args=json.loads(args)
                         except json.JSONDecodeError: args={}
-                    parts.append({"functionCall":{"name":f.get("name"),"args":args,"id":c.get("id")}})
+                    function_call = {
+                        "name": f.get("name"),
+                        "args": args,
+                    }
+                    if c.get("id") is not None:
+                        function_call["id"] = c["id"]
+                    if c.get("thought_signature") is not None:
+                        parts.append({
+                            "functionCall": function_call,
+                            "thoughtSignature": c["thought_signature"],
+                        })
+                    else:
+                        parts.append({"functionCall": function_call})
             if m.role == "tool":
                 parts=[{"functionResponse":{"name":m.tool_call_id or "tool","response":{"output":m.content}}}]
                 role="user"
@@ -50,11 +62,50 @@ class GeminiProvider:
         return system,out
 
     def _request(self, path, payload):
-        req=urllib.request.Request(f"{self.base_url}/{path.lstrip('/')}", data=json.dumps(payload).encode(), headers=self._headers(), method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=300) as r: return json.loads(r.read().decode())
-        except urllib.error.HTTPError as e:
-            raise RuntimeError(f"Gemini HTTP {e.code}: {e.read().decode(errors='replace')[:4000]}")
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        body = json.dumps(payload).encode()
+
+        for attempt in range(3):
+            req = urllib.request.Request(
+                url,
+                data=body,
+                headers=self._headers(),
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=300) as r:
+                    return json.loads(r.read().decode())
+
+            except urllib.error.HTTPError as e:
+                raw = e.read().decode(errors="replace")
+
+                if e.code != 429 or attempt == 2:
+                    raise RuntimeError(
+                        f"Gemini HTTP {e.code}: {raw[:4000]}"
+                    )
+
+                delay = 2 ** attempt
+
+                try:
+                    error = json.loads(raw)
+                    retry_delay = (
+                        error.get("error", {})
+                        .get("details", [])
+                    )
+
+                    for detail in retry_delay:
+                        if detail.get("@type", "").endswith("RetryInfo"):
+                            value = detail.get("retryDelay", "")
+                            if value.endswith("s"):
+                                delay = max(
+                                    delay,
+                                    float(value[:-1]),
+                                )
+                            break
+                except (ValueError, TypeError):
+                    pass
+
+                time.sleep(delay)
 
     def generate(self, messages, tools):
         system, contents=self._contents(messages)
@@ -66,7 +117,17 @@ class GeminiProvider:
         for part in ((obj.get("candidates") or [{}])[0].get("content") or {}).get("parts",[]):
             if part.get("text"): text += part["text"]
             if part.get("functionCall"):
-                fc=part["functionCall"]; calls.append({"id":fc.get("id") or f"gemini_call_{len(calls)}","function":{"name":fc.get("name"),"arguments":fc.get("args",{})}})
+                fc = part["functionCall"]
+                call = {
+                    "id": fc.get("id") or f"gemini_call_{len(calls)}",
+                    "function": {
+                        "name": fc.get("name"),
+                        "arguments": fc.get("args", {}),
+                    },
+                }
+                if part.get("thoughtSignature") is not None:
+                    call["thought_signature"] = part["thoughtSignature"]
+                calls.append(call)
         return ModelResponse(Message("assistant",text,calls), obj.get("usageMetadata",{}), obj)
 
     def stream(self, messages, tools) -> Iterator[StreamChunk]:
@@ -86,7 +147,21 @@ class GeminiProvider:
                     for part in ((obj.get("candidates") or [{}])[0].get("content") or {}).get("parts",[]):
                         if part.get("text"): text += part["text"]
                         if part.get("functionCall"):
-                            fc=part["functionCall"]; calls.append({"id":fc.get("id") or "gemini_call","index":0,"function":{"name":fc.get("name"),"arguments":json.dumps(fc.get("args",{}),separators=(",",":"))}})
+                            fc = part["functionCall"]
+                            call = {
+                                "id": fc.get("id") or "gemini_call",
+                                "index": 0,
+                                "function": {
+                                    "name": fc.get("name"),
+                                    "arguments": json.dumps(
+                                        fc.get("args", {}),
+                                        separators=(",", ":"),
+                                    ),
+                                },
+                            }
+                            if part.get("thoughtSignature") is not None:
+                                call["thought_signature"] = part["thoughtSignature"]
+                            calls.append(call)
                     yield StreamChunk(text,calls,False,obj.get("usageMetadata",{}),obj)
         except urllib.error.HTTPError as e:
             raise RuntimeError(f"Gemini HTTP {e.code}: {e.read().decode(errors='replace')[:4000]}")

@@ -30,11 +30,22 @@ class Agent:
                     text.append(chunk.text); self.events.emit("model.delta", text=chunk.text, run_id=run_id)
                 usage.update(chunk.usage or {})
                 for call in chunk.tool_calls:
-                    idx=call.get("index",0); current=calls.setdefault(idx,{"id":call.get("id"),"function":{"name":"","arguments":""}})
-                    if call.get("id"): current["id"]=call["id"]
-                    fn=call.get("function",{})
-                    if fn.get("name"): current["function"]["name"]=fn["name"]
-                    current["function"]["arguments"] += fn.get("arguments","") or ""
+                    idx = call.get("index", 0)
+                    current = calls.setdefault(
+                        idx,
+                        {
+                            "id": call.get("id"),
+                            "function": {"name": "", "arguments": ""},
+                        },
+                    )
+                    if call.get("id"):
+                        current["id"] = call["id"]
+                    if call.get("thought_signature") is not None:
+                        current["thought_signature"] = call["thought_signature"]
+                    fn = call.get("function", {})
+                    if fn.get("name"):
+                        current["function"]["name"] = fn["name"]
+                    current["function"]["arguments"] += fn.get("arguments", "") or ""
             return ModelResponse(Message("assistant","".join(text),list(calls.values())),usage)
         except Exception:
             # Streaming is an optimization. Fall back to a normal request if the
