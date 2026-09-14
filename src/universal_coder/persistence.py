@@ -35,5 +35,10 @@ class RunStore:
             data[key]={'id':run_id,'objective':objective,'phase':phase,'state':state,'created':old.get('created',now),'updated':now}; self._write(data)
     def get(self,run_id):
         with self._lock:return self._read().get(str(run_id))
+    def resumable(self, run_id):
+        record = self.get(run_id)
+        if not record:
+            return None
+        return record if record.get('phase') not in {'complete', 'failed'} else None
     def recent(self,limit=20):
         with self._lock:return sorted(self._read().values(),key=lambda x:x.get('updated',0),reverse=True)[:limit]

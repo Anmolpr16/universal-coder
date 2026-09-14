@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any
 import json, time
 
-class Phase(str,Enum): INIT='init'; CONTEXT='context'; EXECUTE='execute'; VERIFY='verify'; COMPLETE='complete'; FAILED='failed'
+class Phase(str,Enum): INIT='init'; CONTEXT='context'; EXECUTE='execute'; VERIFY='verify'; PAUSED='paused'; COMPLETE='complete'; FAILED='failed'
 @dataclass
 class RunState:
     objective: str

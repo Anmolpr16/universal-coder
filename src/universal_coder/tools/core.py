@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import subprocess, os
+from universal_coder.reliability import classify_error
 from universal_coder.workspace import Workspace
 from universal_coder.permissions import PermissionManager
 from universal_coder.approvals import ApprovalPolicy
@@ -10,6 +11,14 @@ class ToolResult:
     ok: bool
     output: str
     error: str = ""
+    category: str = "success"
+    retryable: bool = False
+    attempts: int = 1
+
+    @classmethod
+    def failure(cls, error: str, attempts: int = 1):
+        category, retryable = classify_error(error)
+        return cls(False, '', error, category, retryable, attempts)
 
 class ToolRegistry:
     def __init__(self, ws: Workspace, timeout=120, max_output=12000, permissions=None, approvals=None, sandbox_mode="trusted"):
@@ -32,18 +41,18 @@ class ToolRegistry:
             if name=='list_files': return ToolResult(True,'\n'.join(self.ws.tree()))
             if name=='read_file': return ToolResult(True,self.ws.read(args['path']))
             if name=='write_file':
-                if not self.permissions.check('write',args['path']) or not self.approvals.check('write',args['path']): return ToolResult(False,'','write permission denied')
+                if not self.permissions.check('write',args['path']) or not self.approvals.check('write',args['path']): return ToolResult.failure('write permission denied')
                 self.ws.write(args['path'],args['content']); return ToolResult(True,'written '+args['path'])
             if name=='delete_file':
-                if not self.permissions.check('delete',args['path']) or not self.approvals.check('delete',args['path']): return ToolResult(False,'','delete permission denied')
+                if not self.permissions.check('delete',args['path']) or not self.approvals.check('delete',args['path']): return ToolResult.failure('delete permission denied')
                 self.ws.delete(args['path']); return ToolResult(True,'deleted '+args['path'])
             if name=='run_command':
                 command=args['command'].strip()
                 if not self.permissions.check('command',command) or not self.approvals.check('command',command): return ToolResult(False,'','command permission denied')
-                if not command: return ToolResult(False,'','empty command')
+                if not command: return ToolResult.failure('empty command')
                 banned=['rm -rf /','mkfs','dd if=','shutdown','reboot',':(){:|:&};:']
-                if any(x in command for x in banned): return ToolResult(False,'','blocked dangerous command')
+                if any(x in command for x in banned): return ToolResult.failure('blocked dangerous command')
                 ok,out,error=self.executor.run(command)
                 return ToolResult(ok,out,error)
-            return ToolResult(False,'',f'unknown tool: {name}')
-        except Exception as e: return ToolResult(False,'',f'{type(e).__name__}: {e}')
+            return ToolResult.failure(f'unknown tool: {name}')
+        except Exception as e: return ToolResult.failure(f'{type(e).__name__}: {e}')
