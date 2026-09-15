@@ -4,7 +4,7 @@ import universal_coder
 
 
 def test_release_metadata_and_runtime_assets():
-    assert universal_coder.__version__ == "2.0.0"
+    assert universal_coder.__version__ == "2.1.0"
     assert Path("Dockerfile").is_file()
     assert Path("docker-compose.yml").is_file()
     assert Path("install.sh").is_file()

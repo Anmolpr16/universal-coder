@@ -7,14 +7,17 @@ python -m compileall -q src
 python -m pytest -q
 python - <<'PY'
 import universal_coder
-assert universal_coder.__version__ == '2.0.0'
+assert universal_coder.__version__ == '2.1.0'
 print('version:', universal_coder.__version__)
 PY
-python -m pip wheel . --no-build-isolation --no-deps -w /tmp/universal-coder-wheel >/dev/null
+wheel_dir=".release-wheel"
+rm -rf "$wheel_dir"
+mkdir -p "$wheel_dir"
+python -m pip wheel . --no-build-isolation --no-deps -w "$wheel_dir" >/dev/null
 python - <<'PY'
 from pathlib import Path
 import tarfile, zipfile
-wheel=sorted(Path('/tmp/universal-coder-wheel').glob('*.whl'))[-1]
+wheel=sorted(Path(".release-wheel").glob("*.whl"))[-1]
 assert wheel.exists()
 with zipfile.ZipFile(wheel) as z:
     names=z.namelist()
