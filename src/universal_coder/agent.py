@@ -52,14 +52,22 @@ class Agent:
             # provider fails before yielding a usable response.
             return self.provider.generate(messages, tools)
 
-    def run(self, objective, verify=True, review=False, stream=False):
-        run_id=uuid.uuid4().int>>96; state=RunState(objective); snapshot=self.workspace.snapshot(); git=Git(self.workspace.root)
+    def run(self, objective, verify=True, review=False, stream=False, cancel_event=None, deadline_seconds=None):
+        run_id=uuid.uuid4().int>>96; state=RunState(objective); snapshot=self.workspace.snapshot(); git=Git(self.workspace.root); started=time.monotonic()
         self.events.emit('run.started',objective=objective,run_id=run_id)
         context='\n'.join(self.workspace.tree()); messages=[Message('system',SYSTEM),Message('user',objective+'\n\nWorkspace tree:\n'+context)]
         if self.store:self.store.save(run_id,objective,state.phase.value,state.__dict__)
         try:
             state.phase=Phase.EXECUTE
             for i in range(self.max_steps):
+                if cancel_event is not None and cancel_event.is_set():
+                    state.phase=Phase.PAUSED; state.result='Agent cancelled before execution.'
+                    if self.store:self.store.save(run_id,objective,state.phase.value,state.__dict__)
+                    self.events.emit('run.paused',reason='cancelled',run_id=run_id); self.tool_broker.close(); return state.result
+                if deadline_seconds is not None and time.monotonic() - started >= deadline_seconds:
+                    state.phase=Phase.PAUSED; state.result='Agent paused because the deadline was reached before execution.'
+                    if self.store:self.store.save(run_id,objective,state.phase.value,state.__dict__)
+                    self.events.emit('run.paused',reason='deadline',run_id=run_id); self.tool_broker.close(); return state.result
                 state.steps=i+1; self.events.emit('agent.step',step=state.steps,run_id=run_id)
                 response=self._generate(messages,self.tool_broker.schemas(),run_id,stream); messages.append(response.message)
                 if not response.message.tool_calls:
