@@ -1,4 +1,4 @@
-# Universal Coder v2.0.0
+# Universal Coder v2.1.0
 
 A standalone, model-agnostic autonomous coding runtime. It is intentionally independent of any single model vendor.
 
@@ -91,7 +91,7 @@ The agent runtime is model-neutral; providers translate their native message/too
 
 ## Release status
 
-**v2.0.0 Final Release.** The repository includes the hardened core, isolated execution backend, authenticated HTTP gateway, durable runs, model abstraction, parallel agents, verification, and external tool interoperability. The release is packaged for Linux/Termux, container deployment, HTTP clients, and Android. Environment-specific acceptance tests for the chosen model provider, container runtime, and physical Android device remain deployment checks rather than source-code prerequisites.
+**v2.1.0 Release.** The repository includes the hardened core, isolated execution backend, authenticated HTTP gateway, durable runs, model abstraction, parallel agents, verification, and external tool interoperability. The release is packaged for Linux/Termux, container deployment, HTTP clients, and Android. Environment-specific acceptance tests for the chosen model provider, container runtime, and physical Android device remain deployment checks rather than source-code prerequisites.
 
 ## Multi-agent mode
 
