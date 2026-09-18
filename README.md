@@ -1,6 +1,23 @@
 # Universal Coder v2.1.0
 
-A standalone, model-agnostic autonomous coding runtime. It is intentionally independent of any single model vendor.
+**A model-agnostic coding agent runtime for local LLMs, APIs, Android, IDEs, and autonomous software engineering.**
+
+Universal Coder provides one runtime for planning, tool use, code changes, verification, recovery, and multi-agent workflows without tying the system to a single model vendor.
+
+It is designed to sit between the client and the model.
+
+### Why Universal Coder?
+
+- **Model-neutral** — use supported cloud providers or OpenAI-compatible local inference servers.
+- **Local-model friendly** — compatible with servers such as Ollama, llama.cpp, vLLM, LM Studio, and similar endpoints.
+- **Autonomous coding** — planning, implementation, verification, repair, and candidate arbitration.
+- **Multi-agent workflows** — architect, tester, and reviewer specialists can operate independently.
+- **Universal clients** — the same runtime can serve CLI, Android, IDE, and web clients.
+- **Production boundaries** — authentication, TLS, workspace controls, snapshots, bounded execution, and isolated execution support.
+- **Extensible tooling** — native tools and explicitly configured MCP-style external tool servers.
+
+Universal Coder is infrastructure around coding agents: the model can change while the runtime, tools, workspace, verification, and safety boundaries remain consistent.
+
 
 ## Features
 
